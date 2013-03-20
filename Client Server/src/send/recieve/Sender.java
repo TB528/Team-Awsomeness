@@ -3,26 +3,23 @@ package send.recieve;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
 
 public class Sender extends Thread{
 	DatagramSocket s;
-	byte[] buf = new byte[1000];
+	byte[] buf = new byte[1024];
     DatagramPacket dp = new DatagramPacket(buf, buf.length);
-    InetAddress hostAddress;
     
-    private LinkedList<String> messageQueue;
-
+    private LinkedList<Message> messageQueue;
+    
 	public void run() {
-		messageQueue = new LinkedList<String>();
+		messageQueue = new LinkedList<Message>();
         try { 
 			s = new DatagramSocket();
-			hostAddress = InetAddress.getByAddress(new byte[] {(byte)255,(byte)255,(byte)255,(byte)255});
             while ( true ) { 
-                sendMessage(); 
+                sendMessages(); 
                 sleep( 1000 ); 
             } 
         }  
@@ -37,16 +34,17 @@ public class Sender extends Thread{
 			e.printStackTrace();
 		} 
     }
-	private synchronized void sendMessage() throws InterruptedException, IOException {
+	private synchronized void sendMessages() throws InterruptedException, IOException {
 		while(!messageQueue.isEmpty()){
-			String outString = messageQueue.pop();
-			buf = outString.getBytes();
-			DatagramPacket out = new DatagramPacket(buf, buf.length, hostAddress, 4000);
+			Message outMessage = messageQueue.pop();
+			outMessage.setTimeStampNow();
+			buf = Serializer.serialize(outMessage);
+			DatagramPacket out = new DatagramPacket(buf, buf.length, outMessage.getDestinationIp(), outMessage.getDestinationPort());
 			s.send(out);
 		}
 		notify(); 
 	}
-	public synchronized void addMessage(String message) throws InterruptedException, IOException {
+	public synchronized void addMessage(Message message) throws InterruptedException, IOException {
 		messageQueue.add(message);
 		notify(); 
 	}
