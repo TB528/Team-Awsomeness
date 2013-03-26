@@ -4,69 +4,83 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
 
+import negotiate.Connection;
+
 public class Message implements java.io.Serializable {
 	private static final long serialVersionUID = -3575129505474011591L;
 	private Object data;
-	private int sourcePort;
-	private InetAddress sourceIp;
-	private int destinationPort;
-	private InetAddress destinationIp;
+	private Connection source;
+	private Connection destination;
 	private String type;
 	
 
 	public Message() throws UnknownHostException{
-		data = null;
-		sourcePort = -1;
-		sourceIp = InetAddress.getByAddress(new byte[] {(byte)0,(byte)0,(byte)0,(byte)0});
-		destinationPort = -1;
-		destinationIp = sourceIp;
+		data = "";
+		source = new Connection();
+		destination = new Connection();
 		type = "null";
 		setTimeStampNow();
 	}
 	
 	public Message(Object data) throws UnknownHostException{
 		this.data = data;
-		sourcePort = -1;
-		sourceIp = InetAddress.getByAddress(new byte[] {(byte)0,(byte)0,(byte)0,(byte)0});
-		destinationPort = -1;
-		destinationIp = sourceIp;
+		source = new Connection();
+		destination = new Connection();
 		type = "null";
 		setTimeStampNow();
 	}
 	
 	public Message(String data) throws UnknownHostException{
 		this.data = data;
-		sourcePort = -1;
-		sourceIp = InetAddress.getByAddress(new byte[] {(byte)0,(byte)0,(byte)0,(byte)0});
-		destinationPort = -1;
-		destinationIp = sourceIp;
+		source = new Connection();
+		destination = new Connection();
 		type = "message";
 		setTimeStampNow();
 	}
-	
-	public Message(int sourcePort,InetAddress sourceIp,Object data) throws UnknownHostException{
-		this.data = data;
-		this.sourcePort = sourcePort;
-		this.sourceIp = sourceIp;
-		destinationPort = -1;
-		destinationIp = sourceIp;
-		type = "null";
-		setTimeStampNow();
-	}
-	
 	public Message(int destPort, InetAddress destIp, String type, Object data) throws UnknownHostException{
 		this.data = data;
-		sourcePort = -1;
-		sourceIp = InetAddress.getByAddress(new byte[] {(byte)0,(byte)0,(byte)0,(byte)0});
-		this.destinationPort = destPort;
-		this.destinationIp = destIp;
+		source = new Connection();
+		destination = new Connection(destPort,destIp);
+		this.type = type;
+		setTimeStampNow();
+	}
+	public Message(int sourcePort,InetAddress sourceIp, int destPort, InetAddress destIp, String type, Object data) throws UnknownHostException{
+		this.data = data;
+		source = new Connection(sourcePort,sourceIp);
+		destination = new Connection(destPort,destIp);
+		this.type = type;
+		setTimeStampNow();
+	}
+	public Message(Connection destination, String type, Object data) throws UnknownHostException{
+		this.data = data;
+		source = new Connection();
+		this.destination = destination;
+		this.type = type;
+		setTimeStampNow();
+	}
+	public Message(Connection source, Connection destination, String type, Object data) throws UnknownHostException{
+		this.data = data;
+		this.source = source;
+		this.destination = destination;
 		this.type = type;
 		setTimeStampNow();
 	}
 	
-	
-	
-	
+	public Connection getSource() {
+		return source;
+	}
+
+	public void setSource(Connection source) {
+		this.source = source;
+	}
+
+	public Connection getDestination() {
+		return destination;
+	}
+
+	public void setDestination(Connection destination) {
+		this.destination = destination;
+	}
 	
 	/**
 	 * @return the data
@@ -80,63 +94,7 @@ public class Message implements java.io.Serializable {
 	 */
 	public void setData(Object data) {
 		this.data = data;
-	}
-
-	/**
-	 * @return the sourcePort
-	 */
-	public int getSourcePort() {
-		return sourcePort;
-	}
-
-	/**
-	 * @param sourcePort the sourcePort to set
-	 */
-	public void setSourcePort(int sourcePort) {
-		this.sourcePort = sourcePort;
-	}
-
-	/**
-	 * @return the sourceIp
-	 */
-	public InetAddress getSourceIp() {
-		return sourceIp;
-	}
-
-	/**
-	 * @param sourceIp the sourceIp to set
-	 */
-	public void setSourceIp(InetAddress sourceIp) {
-		this.sourceIp = sourceIp;
-	}
-
-	/**
-	 * @return the destinationPort
-	 */
-	public int getDestinationPort() {
-		return destinationPort;
-	}
-
-	/**
-	 * @param destinationPort the destinationPort to set
-	 */
-	public void setDestinationPort(int destinationPort) {
-		this.destinationPort = destinationPort;
-	}
-
-	/**
-	 * @return the destinationIp
-	 */
-	public InetAddress getDestinationIp() {
-		return destinationIp;
-	}
-
-	/**
-	 * @param destinationIp the destinationIp to set
-	 */
-	public void setDestinationIp(InetAddress destinationIp) {
-		this.destinationIp = destinationIp;
-	}
+	}	
 
 	/**
 	 * @return the type
@@ -171,8 +129,8 @@ public class Message implements java.io.Serializable {
 		timeStamp = new Date().toString();
 	}
 	public String toString(){
-		return  "From: " + sourceIp + ":" + sourcePort + "\n" +
-				"To: " + destinationIp + ":" + destinationPort + "\n" +
+		return  "From: " + source.getName() + " at " + source.getIp() + ":" + source.getPort() + "\n" +
+				"To: " + destination.getName() + " at " + destination.getIp() + ":" + destination.getPort() + "\n" +
 				"type: " + type + "\n" +
 				"TimeStamp: " + timeStamp + "\n" +
 				"Msg: " + data.toString();
@@ -181,7 +139,22 @@ public class Message implements java.io.Serializable {
 	public void print(){
 		System.out.println(toString());
 	}
-	public boolean equals(Message m){
-		return (m.data.toString().compareTo(data.toString()) == 0) && (m.timeStamp.compareTo(timeStamp) == 0) && (m.type.compareTo(type) == 0);
+	public boolean equals(Message m){/*
+		System.out.println("******************************");
+		System.out.println("******************************");
+		System.out.println("******************************");
+		print();
+		System.out.println("******************************");
+		m.print();*/
+		boolean isData = m.data.toString().compareTo(data.toString()) == 0;
+		boolean istime = m.timeStamp.compareTo(timeStamp) == 0;
+		boolean isType = true;
+		try{
+			isType = m.type.compareTo(type) == 0;
+		}catch(NullPointerException e){}
+		
+		//System.out.println("******************************" + ((isData) && (istime) && (isType)) + "******************************");
+		
+		return (isData) && (istime) && (isType);
 	}
 }

@@ -7,26 +7,32 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.LinkedList;
 
+import negotiate.Connection;
+
 public class Reciever extends Thread{
 	private int PORT = 4000;
 	private byte[] buf;
 	private DatagramPacket dgp;
 	private DatagramSocket sk;    
 	private LinkedList<Message> messageQueue;
-
+	private boolean isAlive;
+	
 	public void run() {
+		isAlive = true;
 		buf = new byte[1000];
 		dgp = new DatagramPacket(buf, buf.length);
 		messageQueue = new LinkedList<Message>();
 		
+		
         try { 
         	sk = new DatagramSocket(PORT);
-            while ( true ) {
+            while ( isAlive ) {
             	sk.receive(dgp);
             	Message temp = (Message) Serializer.deserialize(dgp.getData());
-            	temp.setSourceIp(dgp.getAddress());
-            	temp.setSourcePort(dgp.getPort());
+            	temp.setSource(new Connection(dgp.getPort(),dgp.getAddress()));
             	messageQueue.add(temp);
+            	//System.out.println("*** Reciever ***");
+            	//temp.print();
                 sleep( 1000 ); 
             } 
         }  
@@ -44,15 +50,23 @@ public class Reciever extends Thread{
 			e.printStackTrace();
 		} 
     }
-	public synchronized LinkedList<Message> getMessages() throws InterruptedException, IOException {
+	public LinkedList<Message> getMessages() throws InterruptedException, IOException {
 		LinkedList<Message> messages = new LinkedList<Message>();
 		int size = messageQueue.size();
-		for(int i = 0; i < size; i++)
-			messages.addLast(messageQueue.pop());
+		Message temp;
+		for(int i = 0; i < size; i++){
+			temp = messageQueue.pop();
+			//System.out.println("*** getMessages ***");
+        	//temp.print();
+			messages.addLast(temp);
+		}
 		return messages;
 	}
-	public synchronized void printBoard(){
+	public void printBoard(){
 		for(Message m : messageQueue)
 			System.out.println(m);
+	}
+	public void kill(){
+		isAlive = false;
 	}
 }

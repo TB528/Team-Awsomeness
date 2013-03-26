@@ -11,14 +11,16 @@ public class Sender extends Thread{
 	DatagramSocket s;
 	byte[] buf = new byte[1024];
     DatagramPacket dp = new DatagramPacket(buf, buf.length);
+    private boolean isAlive;
     
     private LinkedList<Message> messageQueue;
     
 	public void run() {
 		messageQueue = new LinkedList<Message>();
+		isAlive = true;
         try { 
 			s = new DatagramSocket();
-            while ( true ) { 
+            while ( isAlive ) { 
                 sendMessages(); 
                 sleep( 1000 ); 
             } 
@@ -38,14 +40,21 @@ public class Sender extends Thread{
 		while(!messageQueue.isEmpty()){
 			Message outMessage = messageQueue.pop();
 			outMessage.setTimeStampNow();
+			//System.out.println("*** sendMessages ***");
+			//outMessage.print();
 			buf = Serializer.serialize(outMessage);
-			DatagramPacket out = new DatagramPacket(buf, buf.length, outMessage.getDestinationIp(), outMessage.getDestinationPort());
+			DatagramPacket out = new DatagramPacket(buf, buf.length, outMessage.getDestination().getIp(), outMessage.getDestination().getPort());
 			s.send(out);
 		}
 		notify(); 
 	}
 	public synchronized void addMessage(Message message) throws InterruptedException, IOException {
+		//System.out.println("*** addMessage ***");
+		//message.print();
 		messageQueue.add(message);
 		notify(); 
+	}
+	public synchronized void kill(){
+		isAlive = false;
 	}
 }
